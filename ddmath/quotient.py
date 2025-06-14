@@ -1,14 +1,21 @@
 from __future__ import annotations
 from typing import TypeVar, Generic, Union, List, Any, Type, overload, Self
 
-from .typesetting import Ring
+from .typesetting import Ring, Field
 
 T = TypeVar('T', bound=Ring)
+U = TypeVar('U', bound=Field)
 
 class QuotientRing(Ring, Generic[T]):
     def __init__(self, ele: T, mod_ele: T, ring: Type[T]) -> None:
-        if mod_ele == ring(0):
+        if mod_ele == ring.add_idn():
             raise ValueError("you can't quotient a zero element")
+        # check whether % is available
+        if not hasattr(ring, '__mod__') \
+            or not callable(getattr(ring, '__mod__')) \
+            or ring.__mod__ is Ring.__mod__:
+            raise TypeError("ring does not provide a % method")
+
         self.mod_ele = mod_ele
         self.ele = ele % mod_ele
         self.ring = ring
@@ -94,7 +101,7 @@ class QuotientRing(Ring, Generic[T]):
     def __pow__(self, exponent: int) -> Self:
         if exponent < 0:
             raise ValueError("Exponent must be non-negative")
-        result = self.ring(1)
+        result = self.ring.mul_idn()
         base = self.ele
         exp = exponent
         mod = self.mod_ele
@@ -105,4 +112,15 @@ class QuotientRing(Ring, Generic[T]):
             exp //= 2
         return self._construct(result)
 
+class QuotientField(QuotientRing, Field, Generic[U]):
+    def __init__(self, ele: U, mod_ele: U, field: Type[U]) -> None:
+        if mod_ele == field.add_idn():
+            raise ValueError("you can't quotient a zero element")
+        # check whether % is available
+        if not hasattr(field, '__mod__') \
+            or not callable(getattr(field, '__mod__')) \
+            or field.__mod__ is Field.__mod__:
+            raise TypeError("field does not provide a % method")
+        super().__init__(ele, mod_ele, field)
+        self.field = field
 

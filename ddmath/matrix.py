@@ -23,7 +23,7 @@ def check_arr_form(arr: Iterable[Iterable[Any]]) -> bool:
     a0 = next(it)
     length = myLen(a0)
     for _ in range(length1-1):
-        if next(it) != length:
+        if myLen(next(it)) != length:
             return False
     return True
 

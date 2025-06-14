@@ -2,29 +2,52 @@ from __future__ import annotations
 from fractions import Fraction
 from typing import TypeVar, Generic, Union, List, Any, Type, overload
 
-from .field import Field
+from math import gcd as _gcd
+from collections.abc import Iterable
+
 from .quotient import QuotientRing
-from .typesetting import Ring
+from .typesetting import Ring, Field
 
 # 定義係數類型的 TypeVar
-T = TypeVar('T', bound=Any)
+T = TypeVar('T', bound=Field)
 
 def _modulus(p_coeffs: list[T], mod_coeffs: list[T], field: Type[T]) -> list[T]:
         """多項式取模運算 (p_coeffs % mod_coeffs)，返回餘式"""
-        if len(mod_coeffs) == 0 or all(c == field(0) for c in mod_coeffs):
+        if len(mod_coeffs) == 0 or all(c == field.add_idn() for c in mod_coeffs):
             raise ZeroDivisionError("modulus by zero polynomial")
         result_coeffs = p_coeffs[:]
         mod_lead = mod_coeffs[-1]
         while len(result_coeffs) >= len(mod_coeffs):
             deg_diff = len(result_coeffs) - len(mod_coeffs)
-            lead_coeff = result_coeffs[-1] / mod_lead  # type: ignore
+            lead_coeff = result_coeffs[-1] / mod_lead
             for i in range(len(mod_coeffs)):
-                result_coeffs[deg_diff + i] -= lead_coeff * mod_coeffs[i]  # type: ignore
-            while len(result_coeffs) > 0 and result_coeffs[-1] == field(0):
+                result_coeffs[deg_diff + i] -= lead_coeff * mod_coeffs[i]
+            while len(result_coeffs) > 0 and result_coeffs[-1] == field.add_idn():
                 result_coeffs.pop()
             if not result_coeffs:
-                result_coeffs = [field(0)]
+                result_coeffs = [field.add_idn()]
         return result_coeffs
+
+def gcd(p1: Polyn[T] | int, p2: Polyn[T] | int) -> Polyn[T] | int:
+    if isinstance(p1, int) and isinstance(p2, int):
+        return _gcd(p1, p2)
+    if isinstance(p1, int) and isinstance(p2, Polyn):
+        p1 = Polyn([p1], p2.field)
+    if isinstance(p2, int) and isinstance(p1, Polyn):
+        p2 = Polyn([p2], p1.field)
+    if not (isinstance(p1, Polyn) and isinstance(p2, Polyn)):
+        raise TypeError("Both arguments must be either integers or one integer and one Polyn instance")
+    if p1.field != p2.field:
+        raise TypeError("Polynomials must have the same coefficient field")
+    a, b = p1, p2
+    zero = a.field.add_idn()
+    while not (len(b.coeffs) == 1 and b.coeffs[0] == zero):
+        a, b = b, a % b
+    # Normalize so leading coefficient is 1 if possible
+    lead = a.coeffs[-1]
+    if hasattr(lead, '__truediv__') and lead != zero:
+        a = a * (a.field.mul_idn() / lead)
+    return a
 
 class Polyn(Ring, Generic[T]):
     """
@@ -63,19 +86,22 @@ class Polyn(Ring, Generic[T]):
         >>> p.derivative()
         Polyn(int, [2, 6])
     """
-    def __init__(self, coefficients: List[T], field: Type[T]) -> None:
+    def __init__(self, coefficients: List[Any] | Any, field: Type[T]) -> None:
         self.field: Type[T] = field
 
         if not isinstance(coefficients, list):
-            raise TypeError(f"coefficients should be a list, not {type(coefficients).__name__}")
+            if not isinstance(coefficients, Iterable) or isinstance(coefficients, (str, bytes)):
+                coefficients = [coefficients]
+            else:
+                coefficients = list(coefficients)
         
         # 將所有係數轉換為指定的 field 類型
-        self.coeffs: List[T] = [field(c) if not isinstance(c, field) else c for c in coefficients]  # type: ignore
+        self.coeffs: List[T] = [field(c) if not isinstance(c, field) else c for c in coefficients]
         self._normalize()
     
     def _normalize(self) -> None:
         """移除最高次項的零係數"""
-        zero = self.field(0)  # type: ignore
+        zero = self.field.add_idn()
         while len(self.coeffs) > 1 and self.coeffs[-1] == zero:
             self.coeffs.pop()
     
@@ -86,9 +112,9 @@ class Polyn(Ring, Generic[T]):
     
     def __str__(self) -> str:
         """字串表示法"""
-        zero = self.field(0)  # type: ignore
-        one = self.field(1)  # type: ignore
-        neg_one = self.field(-1)  # type: ignore
+        zero = self.field.add_idn()
+        one = self.field.mul_idn()
+        neg_one = self.field(-1)
         
         if all(c == zero for c in self.coeffs):
             return "0"
@@ -138,8 +164,8 @@ class Polyn(Ring, Generic[T]):
         if isinstance(other, Polyn):
             return self.coeffs == other.coeffs
         elif isinstance(other, (int, float, Fraction)):
-            zero = self.field(0)  # type: ignore
-            converted_other = self.field(other)  # type: ignore
+            zero = self.field.add_idn()
+            converted_other = self.field(other)
             return len(self.coeffs) == 1 and self.coeffs[0] == converted_other
         return False
     
@@ -159,17 +185,17 @@ class Polyn(Ring, Generic[T]):
             # 確保兩個多項式有相同的長度
             max_len = max(len(self.coeffs), len(other.coeffs))
             new_coeffs: List[T] = []
-            zero = self.field(0)  # type: ignore
+            zero = self.field.add_idn()
             for i in range(max_len):
                 a = self.coeffs[i] if i < len(self.coeffs) else zero
                 b = other.coeffs[i] if i < len(other.coeffs) else zero
-                new_coeffs.append(a + b)  # type: ignore
+                new_coeffs.append(a + b)
             return Polyn(new_coeffs, self.field)
         else:
             # 與純量相加
             new_coeffs = self.coeffs.copy()
-            scalar_value = self.field(other)  # type: ignore
-            new_coeffs[0] = new_coeffs[0] + scalar_value  # type: ignore
+            scalar_value = self.field(other)
+            new_coeffs[0] = new_coeffs[0] + scalar_value
             return Polyn(new_coeffs, self.field)
     
     def __radd__(self, other: Union[T, int, float]) -> 'Polyn[T]':
@@ -187,23 +213,23 @@ class Polyn(Ring, Generic[T]):
         if isinstance(other, Polyn):
             max_len = max(len(self.coeffs), len(other.coeffs))
             new_coeffs: List[T] = []
-            zero = self.field(0)  # type: ignore
+            zero = self.field.add_idn()
             for i in range(max_len):
                 a = self.coeffs[i] if i < len(self.coeffs) else zero
                 b = other.coeffs[i] if i < len(other.coeffs) else zero
-                new_coeffs.append(a - b)  # type: ignore
+                new_coeffs.append(a - b)
             return Polyn(new_coeffs, self.field)
         else:
             new_coeffs = self.coeffs.copy()
-            scalar_value = self.field(other)  # type: ignore
-            new_coeffs[0] = new_coeffs[0] - scalar_value  # type: ignore
+            scalar_value = self.field(other)
+            new_coeffs[0] = new_coeffs[0] - scalar_value
             return Polyn(new_coeffs, self.field)
     
     def __rsub__(self, other: Union[T, int, float]) -> 'Polyn[T]':
         """右減法運算"""
-        new_coeffs: List[T] = [-c for c in self.coeffs]  # type: ignore
-        scalar_value = self.field(other)  # type: ignore
-        new_coeffs[0] = new_coeffs[0] + scalar_value  # type: ignore
+        new_coeffs: List[T] = [-c for c in self.coeffs]
+        scalar_value = self.field(other)
+        new_coeffs[0] = new_coeffs[0] + scalar_value
         return Polyn(new_coeffs, self.field)
     
     @overload
@@ -216,17 +242,17 @@ class Polyn(Ring, Generic[T]):
         """乘法運算"""
         if isinstance(other, Polyn):
             # 多項式乘法
-            zero = self.field(0)  # type: ignore
+            zero = self.field.add_idn()
             result_coeffs: List[T] = [zero] * (len(self.coeffs) + len(other.coeffs) - 1)
             for i, a in enumerate(self.coeffs):
                 for j, b in enumerate(other.coeffs):
-                    product = a * b  # type: ignore
-                    result_coeffs[i + j] = result_coeffs[i + j] + product  # type: ignore
+                    product = a * b
+                    result_coeffs[i + j] = result_coeffs[i + j] + product
             return Polyn(result_coeffs, self.field)
         else:
             # 與純量相乘
-            scalar_value = self.field(other)  # type: ignore
-            new_coeffs: List[T] = [c * scalar_value for c in self.coeffs]  # type: ignore
+            scalar_value = self.field(other)
+            new_coeffs: List[T] = [c * scalar_value for c in self.coeffs]
             return Polyn(new_coeffs, self.field)
     
     def __rmul__(self, other: Union[T, int, float]) -> 'Polyn[T]':
@@ -238,10 +264,10 @@ class Polyn(Ring, Generic[T]):
         if n < 0:
             raise ValueError("不支援負指數")
         if n == 0:
-            one = self.field(1)  # type: ignore
+            one = self.field.mul_idn()
             return Polyn([one], self.field)
         
-        one = self.field(1)  # type: ignore
+        one = self.field.mul_idn()
         result: 'Polyn[T]' = Polyn([one], self.field)
         base: 'Polyn[T]' = self
         
@@ -256,25 +282,25 @@ class Polyn(Ring, Generic[T]):
     
     def __neg__(self) -> 'Polyn[T]':
         """負號運算"""
-        new_coeffs: List[T] = [-c for c in self.coeffs]  # type: ignore
+        new_coeffs: List[T] = [-c for c in self.coeffs]
         return Polyn(new_coeffs, self.field)
     
     def __call__(self, x: Union[T, int, float]) -> T:
         """求值運算，使用 Horner 方法"""
         if not self.coeffs:
-            return self.field(0)  # type: ignore
+            return self.field.add_idn()
         
-        x_value = self.field(x)  # type: ignore
+        x_value = self.field(x)
         result: T = self.coeffs[-1]
         for i in range(len(self.coeffs) - 2, -1, -1):
-            result = result * x_value + self.coeffs[i]  # type: ignore
+            result = result * x_value + self.coeffs[i]
         return result
     
     def __mod__(self, mod_poly: 'Polyn[T]') -> 'Polyn[T]':
         """多項式取模運算 (self % mod_poly)，返回餘式"""
         if not isinstance(mod_poly, Polyn):
             raise TypeError("modulus must be a Polyn instance")
-        if len(mod_poly.coeffs) == 0 or all(c == self.field(0) for c in mod_poly.coeffs):
+        if len(mod_poly.coeffs) == 0 or all(c == self.field.add_idn() for c in mod_poly.coeffs):
             raise ZeroDivisionError("modulus by zero polynomial")
         result_coeffs = _modulus(self.coeffs, mod_poly.coeffs, self.field)
         return Polyn(result_coeffs, self.field)
@@ -282,23 +308,23 @@ class Polyn(Ring, Generic[T]):
     def derivative(self) -> 'Polyn[T]':
         """求導數"""
         if len(self.coeffs) <= 1:
-            zero = self.field(0)  # type: ignore
+            zero = self.field.add_idn()
             return Polyn([zero], self.field)
         
         new_coeffs: List[T] = []
         for i in range(1, len(self.coeffs)):
-            multiplier = self.field(i)  # type: ignore
-            new_coeffs.append(self.coeffs[i] * multiplier)  # type: ignore
+            multiplier = self.field(i)
+            new_coeffs.append(self.coeffs[i] * multiplier)
         
         return Polyn(new_coeffs, self.field)
     
     def integrate(self, constant: Union[T, int, float] = 0) -> 'Polyn[T]':
         """求不定積分"""
-        constant_value = self.field(constant)  # type: ignore
+        constant_value = self.field(constant)
         new_coeffs: List[T] = [constant_value]
         for i, coeff in enumerate(self.coeffs):
-            divisor = self.field(i + 1)  # type: ignore
-            new_coeffs.append(coeff / divisor)  # type: ignore
+            divisor = self.field(i + 1)
+            new_coeffs.append(coeff / divisor)
         
         return Polyn(new_coeffs, self.field)
     
@@ -309,12 +335,12 @@ class Polyn(Ring, Generic[T]):
         roots: List[Union[T, int, float]]
     ) -> 'Polyn[T]':
         """從根建立多項式"""
-        one = field(1)  # type: ignore
+        one = field.mul_idn()
         result: 'Polyn[T]' = cls([one], field)  # 從 1 開始
         for root in roots:
             # 乘以 (x - root)
-            neg_root = field((-field(1)) * field(root))  # type: ignore
-            one_coeff = field(1)  # type: ignore
+            neg_root = field((-field.mul_idn()) * field(root))
+            one_coeff = field.mul_idn()
             factor: 'Polyn[T]' = cls([neg_root, one_coeff], field)
             result = result * factor
         return result
@@ -322,6 +348,9 @@ class Polyn(Ring, Generic[T]):
 class PolynQuotientRing(QuotientRing, Generic[T]):
     def __init__(self, coefficients: List[T], mod_polyn: 'Polyn[T]') -> None:
         polyn = Polyn(coefficients, mod_polyn.field)
-        super().__init__(polyn, mod_polyn, mod_polyn.field)
-    
-    
+        class TempPolynRing(Polyn):
+            def __init__(self, coefficients: List[Any] | Any) -> None:
+                super().__init__(coefficients, mod_polyn.field)
+        super().__init__(polyn, mod_polyn, TempPolynRing)
+
+

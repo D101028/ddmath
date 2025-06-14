@@ -4,39 +4,7 @@ from typing import Self, TypeVar, Generic, Union, List, Any, Type, overload
 from math import gcd
 
 from .quotient import QuotientRing
-from .typesetting import Ring, NonNegativeInt
-
-class Field(Ring):
-    """Every field inherits this class"""
-    def __init__(self, ele: Any) -> None:
-        ...
-    
-    def __add__(self, other: Self) -> Self:
-        ...
-
-    def __sub__(self, other: Self) -> Self:
-        ...
-
-    def __mul__(self, other: Self) -> Self:
-        ...
-
-    def __neg__(self) -> Self:
-        ...
-
-    def __eq__(self, other: Any) -> bool:
-        ...
-
-    def __mod__(self, other: Self) -> Self:
-        ...
-
-    def __pow__(self, exponent: int) -> Self:
-        ...
-
-    def __truediv__(self, other: Self) -> Self:
-        ...
-    
-    def __floordiv__(self, other: Self) -> Self:
-        ...
+from .typesetting import Field, NonNegativeInt
 
 class IntField(QuotientRing, Field):
     def __init__(self, ele: int, mod_ele: int) -> None:
