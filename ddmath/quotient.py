@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import TypeVar, Generic, Union, List, Any, Type, overload, Self
 
-from .ring import Ring
+from .typesetting import Ring
 
 T = TypeVar('T', bound=Ring)
 
-class QuotientRing(Generic[T]):
+class QuotientRing(Ring, Generic[T]):
     def __init__(self, ele: T, mod_ele: T, ring: Type[T]) -> None:
         if mod_ele == ring(0):
             raise ValueError("you can't quotient a zero element")

@@ -4,12 +4,12 @@ from typing import Self, TypeVar, Generic, Union, List, Any, Type, overload
 from math import gcd
 
 from .quotient import QuotientRing
-from .ring import Ring
+from .typesetting import Ring, NonNegativeInt
 
 class Field(Ring):
     """Every field inherits this class"""
-    def __init__(self, ele) -> None:
-        super().__init__(ele)
+    def __init__(self, ele: Any) -> None:
+        ...
     
     def __add__(self, other: Self) -> Self:
         ...
@@ -85,7 +85,7 @@ class IntField(QuotientRing, Field):
             raise ValueError("Cannot divide elements from different fields")
         return (self - (self % other)) / other
 
-def generate_Zn(n: int):
+def generate_Zn(n: NonNegativeInt):
     if n <= 0:
         raise ValueError("n should be a positive integer")
     class Zn(IntField):

@@ -4,7 +4,7 @@ from typing import TypeVar, Generic, Union, List, Any, Type, overload
 
 from .field import Field
 from .quotient import QuotientRing
-from .ring import Ring
+from .typesetting import Ring
 
 # 定義係數類型的 TypeVar
 T = TypeVar('T', bound=Any)
@@ -28,14 +28,41 @@ def _modulus(p_coeffs: list[T], mod_coeffs: list[T], field: Type[T]) -> list[T]:
 
 class Polyn(Ring, Generic[T]):
     """
-    多項式類別，支援泛型係數類型
-    
-    Args:
-        coefficients: 係數列表，從常數項到最高次項 [a₀, a₁, a₂, ...]
-                     表示多項式 a₀ + a₁x + a₂x² + ...
-        field: 係數使用的數值類型 (如 int, float, Fraction 等)
+    Polyn is a generic polynomial class supporting coefficients of any numeric type.
+    This class provides arithmetic operations, evaluation, differentiation, integration, and construction from roots for polynomials with coefficients of a specified numeric type (such as int, float, Fraction, etc.).
+        coefficients (List[T]): List of coefficients, from constant term to highest degree term [a₀, a₁, a₂, ...], representing the polynomial a₀ + a₁x + a₂x² + ...
+        field (Type[T]): The numeric type used for coefficients (e.g., int, float, Fraction).
+    Attributes:
+        coeffs (List[T]): The normalized list of coefficients.
+        field (Type[T]): The numeric type used for coefficients.
+    Methods:
+        degree: Returns the degree of the polynomial.
+        __str__: Returns a human-readable string representation of the polynomial.
+        __repr__: Returns a string representation suitable for debugging.
+        __eq__, __ne__: Equality and inequality comparison with another polynomial or scalar.
+        __add__, __radd__: Addition with another polynomial or scalar.
+        __sub__, __rsub__: Subtraction with another polynomial or scalar.
+        __mul__, __rmul__: Multiplication with another polynomial or scalar.
+        __pow__: Exponentiation (non-negative integer powers).
+        __neg__: Negation of the polynomial.
+        __call__: Evaluates the polynomial at a given value using Horner's method.
+        __mod__: Polynomial modulus operation, returning the remainder after division by another polynomial.
+        derivative: Returns the derivative of the polynomial.
+        integrate: Returns the indefinite integral (antiderivative) of the polynomial, with an optional constant of integration.
+        from_roots: Class method to construct a polynomial given its roots.
+    Raises:
+        TypeError: If coefficients is not a list or if modulus is not a Polyn instance.
+        ZeroDivisionError: If modulus by the zero polynomial is attempted.
+        ValueError: If negative exponent is used in __pow__.
+    Examples:
+        >>> p = Polyn([1, 2, 3], int)  # Represents 1 + 2x + 3x^2
+        >>> str(p)
+        '(1 + 2x + 3x^2)'
+        >>> p(2)
+        17
+        >>> p.derivative()
+        Polyn(int, [2, 6])
     """
-    
     def __init__(self, coefficients: List[T], field: Type[T]) -> None:
         self.field: Type[T] = field
 
