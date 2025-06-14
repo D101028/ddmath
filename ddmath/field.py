@@ -8,7 +8,7 @@ from .typesetting import Field, NonNegativeInt
 
 class IntField(QuotientRing, Field):
     def __init__(self, ele: int, mod_ele: int) -> None:
-        if gcd(ele, mod_ele) != 1:
+        if ele != 0 and gcd(ele, mod_ele) != 1:
             raise ValueError("the element and the quotient must be relatively prime")
         self.ele: int
         self.mod_ele: int
@@ -37,12 +37,6 @@ class IntField(QuotientRing, Field):
             t += m
         return self._construct(t)
 
-    def __pow__(self, exponent: int) -> Self:
-        if exponent >= 0:
-            return self._construct(pow(self.ele, exponent, self.mod_ele))
-        else:
-            return self._construct(pow(self.ele, exponent, self.mod_ele)).mul_inv()
-
     def __truediv__(self, other: Self) -> Self:
         if self.mod_ele != other.mod_ele:
             raise ValueError("Cannot divide elements from different fields")
@@ -53,14 +47,29 @@ class IntField(QuotientRing, Field):
             raise ValueError("Cannot divide elements from different fields")
         return (self - (self % other)) / other
 
-def generate_Zn(n: NonNegativeInt):
+    def __pow__(self, exponent: int) -> Self:
+        # Override it for the faster speed
+        if exponent >= 0:
+            return self._construct(pow(self.ele, exponent, self.mod_ele))
+        else:
+            return self._construct(pow(self.ele, exponent, self.mod_ele)).mul_inv()
+
+_Zn_cache = {}
+def generate_Zn(n: int):
     if n <= 0:
         raise ValueError("n should be a positive integer")
+    if n in _Zn_cache:
+        return _Zn_cache[n]
+    
     class Zn(IntField):
         def __init__(self, ele: int) -> None:
             super().__init__(ele, n)
         
         def _construct(self, ele: int) -> Self:
             return type(self)(ele)
-    
+        
+        def __str__(self) -> str:
+            return f"{self.ele}"
+
+    _Zn_cache[n] = Zn
     return Zn

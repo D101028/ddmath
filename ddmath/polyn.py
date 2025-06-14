@@ -1,6 +1,6 @@
 from __future__ import annotations
 from fractions import Fraction
-from typing import TypeVar, Generic, Union, List, Any, Type, overload
+from typing import Self, TypeVar, Generic, Union, List, Any, Type, overload
 
 from math import gcd as _gcd
 from collections.abc import Iterable
@@ -11,23 +11,33 @@ from .typesetting import Ring, Field
 # 定義係數類型的 TypeVar
 T = TypeVar('T', bound=Field)
 
-def _modulus(p_coeffs: list[T], mod_coeffs: list[T], field: Type[T]) -> list[T]:
-        """多項式取模運算 (p_coeffs % mod_coeffs)，返回餘式"""
-        add_idn = field.add_idn() if hasattr(field, "add_idn") else field(0)
-        if len(mod_coeffs) == 0 or all(c == add_idn for c in mod_coeffs):
-            raise ZeroDivisionError("modulus by zero polynomial")
-        result_coeffs = p_coeffs[:]
-        mod_lead = mod_coeffs[-1]
-        while len(result_coeffs) >= len(mod_coeffs):
-            deg_diff = len(result_coeffs) - len(mod_coeffs)
-            lead_coeff = result_coeffs[-1] / mod_lead
-            for i in range(len(mod_coeffs)):
-                result_coeffs[deg_diff + i] -= lead_coeff * mod_coeffs[i]
-            while len(result_coeffs) > 0 and result_coeffs[-1] == add_idn:
-                result_coeffs.pop()
-            if not result_coeffs:
-                result_coeffs = [add_idn]
-        return result_coeffs
+def _euclidean_division(
+    p_coeffs: list[T], mod_coeffs: list[T], field: Type[T]
+) -> tuple[list[T], list[T]]:
+    """
+    多項式歐基里德除法 (p_coeffs // mod_coeffs, p_coeffs % mod_coeffs)，返回 (商, 餘式)
+    """
+    add_idn = field.add_idn() if hasattr(field, "add_idn") else field(0)
+    mul_idn = field.mul_idn() if hasattr(field, "mul_idn") else field(1)
+    if len(mod_coeffs) == 0 or all(c == add_idn for c in mod_coeffs):
+        raise ZeroDivisionError("division by zero polynomial")
+    dividend = p_coeffs[:]
+    divisor = mod_coeffs
+    quotient = [add_idn] * (max(len(dividend) - len(divisor) + 1, 0))
+    divisor_lead = divisor[-1]
+    while len(dividend) >= len(divisor) and any(c != add_idn for c in dividend):
+        deg_diff = len(dividend) - len(divisor)
+        lead_coeff = dividend[-1] / divisor_lead
+        quotient[deg_diff] = lead_coeff
+        for i in range(len(divisor)):
+            dividend[deg_diff + i] -= lead_coeff * divisor[i]
+        while len(dividend) > 0 and dividend[-1] == add_idn:
+            dividend.pop()
+    if not quotient:
+        quotient = [add_idn]
+    if not dividend:
+        dividend = [add_idn]
+    return quotient, dividend
 
 def gcd(p1: Polyn[T] | int, p2: Polyn[T] | int) -> Polyn[T] | int:
     if isinstance(p1, int) and isinstance(p2, int):
@@ -283,15 +293,23 @@ class Polyn(Ring, Generic[T]):
         for i in range(len(self.coeffs) - 2, -1, -1):
             result = result * x_value + self.coeffs[i]
         return result
-    
-    def __mod__(self, mod_poly: 'Polyn[T]') -> 'Polyn[T]':
-        """多項式取模運算 (self % mod_poly)，返回餘式"""
+
+    def euclid_div(self, mod_poly: 'Polyn[T]') -> tuple['Polyn[T]', 'Polyn[T]']:
         if not isinstance(mod_poly, Polyn):
             raise TypeError("modulus must be a Polyn instance")
         if len(mod_poly.coeffs) == 0 or all(c == self.field_add_idn for c in mod_poly.coeffs):
             raise ZeroDivisionError("modulus by zero polynomial")
-        result_coeffs = _modulus(self.coeffs, mod_poly.coeffs, self.field)
-        return Polyn(result_coeffs, self.field)
+        q, r = _euclidean_division(self.coeffs, mod_poly.coeffs, self.field)
+        return Polyn(q, self.field), Polyn(r, self.field)
+
+    def __mod__(self, mod_poly: 'Polyn[T]') -> 'Polyn[T]':
+        """多項式取模運算 (self % mod_poly)，返回餘式"""
+        _, result = self.euclid_div(mod_poly)
+        return result
+
+    def __floordiv__(self, other: 'Polyn[T]' | Any) -> 'Polyn[T]':
+        result, _ = self.euclid_div(other)
+        return result
 
     def derivative(self) -> 'Polyn[T]':
         """求導數"""
@@ -333,15 +351,55 @@ class Polyn(Ring, Generic[T]):
             result = result * factor
         return result
 
+_TempPolynRing_cache: list[tuple[type, type]] = []
+def _generate_temp_polyn_ring(field: type[T]) -> type:
+    for tmp_field, tmp_TPR in _TempPolynRing_cache:
+        if field == tmp_field:
+            TempPolynRing = tmp_TPR
+            break
+    else:
+        class TempPolynRing(Polyn):
+            def __init__(self, coefficients: List[Any] | Any) -> None:
+                super().__init__(coefficients, field)
+        _TempPolynRing_cache.append((field, TempPolynRing))
+    return TempPolynRing
 class PolynQuotientRing(QuotientRing, Generic[T]):
     def __init__(self, coefficients: List[T] | 'Polyn[T]', mod_polyn: 'Polyn[T]') -> None:
         if isinstance(coefficients, Polyn):
             polyn = coefficients
         else:
             polyn = Polyn(coefficients, mod_polyn.field)
-        class TempPolynRing(Polyn):
-            def __init__(self, coefficients: List[Any] | Any) -> None:
-                super().__init__(coefficients, mod_polyn.field)
-        super().__init__(polyn, mod_polyn, TempPolynRing)
+        
+        super().__init__(polyn, mod_polyn, _generate_temp_polyn_ring(mod_polyn.field))
 
+        self.ele: Polyn[T]
+        self.mod_ele: Polyn[T]
 
+        self.polyn = self.ele
+        self.mod_polyn = self.mod_ele
+
+        self.coeff_field = mod_polyn.field
+        self.coeff_field_add_idn = self.coeff_field.add_idn() if hasattr(self.coeff_field, 'add_idn') else self.coeff_field(0)
+        self.coeff_field_mul_idn = self.coeff_field.mul_idn() if hasattr(self.coeff_field, 'mul_idn') else self.coeff_field(1)
+    
+    def _construct(self, ele: Any) -> Self:
+        return type(self)(ele, self.mod_polyn)
+
+    def mul_inv(self) -> 'PolynQuotientRing[T]':
+        if not isinstance(self.mod_polyn, Polyn):
+            raise TypeError("modulus must be a Polyn instance")
+        zero = self.coeff_field_add_idn
+        one = self.coeff_field_mul_idn
+        a, b = self.mod_polyn, self.polyn % self.mod_polyn
+        x0, x1 = Polyn([one], self.coeff_field), Polyn([zero], self.coeff_field)
+        y0, y1 = Polyn([zero], self.coeff_field), Polyn([one], self.coeff_field)
+        while b != Polyn([zero], self.coeff_field):
+            q, r = a.euclid_div(b)
+            a, b = b, r
+            x0, x1 = x1, x0 - q * x1
+            y0, y1 = y1, y0 - q * y1
+        if a.degree != 0:
+            raise ZeroDivisionError("No multiplicative inverse exists (not coprime)")
+        if a.coeffs[0] != one:
+            y0 = y0 * Polyn([a.coeffs[0].mul_inv()], self.coeff_field)
+        return PolynQuotientRing(y0, self.mod_polyn)

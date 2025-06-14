@@ -118,14 +118,22 @@ class Ring(Group):
             raise NotImplementedError(f"{type(self).__name__} does not implement multiplication with its own type.")
         else:
             raise TypeError(f"Unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
-        
-    def __pow__(self, exponent: NonNegativeInt) -> Self:
-        """You should overload this method."""
-        raise NotImplementedError
     
     def __mod__(self, other: Self) -> Self:
         """You may overload this method."""
         raise NotImplementedError(f"{type(self).__name__} does not support '%' operation.")
+
+    def __truediv__(self, other: Self) -> Self:
+        """You may overload this method."""
+        raise NotImplementedError(f"{type(self).__name__} does not support '//' operation.")
+
+    def __floordiv__(self, other: Self) -> Self:
+        """You may overload this method."""
+        raise NotImplementedError(f"{type(self).__name__} does not support '//' operation.")
+
+    def mul_inv(self) -> Self:
+        """You may overload this method."""
+        raise NotImplementedError(f"{type(self).__name__} does not support 'mul_inv'.")
 
     @classmethod
     def mul_idn(cls) -> Self:
@@ -159,12 +167,27 @@ class Ring(Group):
             base = base + base
             exp >>= 1
         return result
-
+    
+    def __pow__(self, exponent: int) -> Self:
+        if not isinstance(exponent, int):
+            raise TypeError(f"Exponent must be int, got {type(exponent).__name__}")
+        if exponent < 0:
+            return self.mul_inv().__pow__(-exponent)
+        result = self.mul_idn()
+        base = self
+        exp = exponent
+        while exp > 0:
+            if exp & 1:
+                result = result * base
+            base = base * base
+            exp >>= 1
+        return result
+    
 class Field(Ring):
     """Every field inherits this class"""
-    def __pow__(self, exponent: int) -> Self:
+    def mul_inv(self) -> Self:
         """You should overload this method."""
-        raise NotImplementedError
+        raise NotImplementedError(f"{type(self).__name__} does not support 'mul_inv'.")
 
     def __truediv__(self, other: Self) -> Self:
         """You should overload this method."""
@@ -173,3 +196,4 @@ class Field(Ring):
     def __floordiv__(self, other: Self) -> Self:
         """You should overload this method."""
         raise NotImplementedError
+    
