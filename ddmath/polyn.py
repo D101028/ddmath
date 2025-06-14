@@ -399,7 +399,7 @@ class PolynQuotientRing(QuotientRing, Generic[T]):
             x0, x1 = x1, x0 - q * x1
             y0, y1 = y1, y0 - q * y1
         if a.degree != 0:
-            raise ZeroDivisionError("No multiplicative inverse exists (not coprime)")
+            raise ZeroDivisionError(f"{self.polyn} has no multiplicative inverse in the quotient ring <{self.mod_polyn}>")
         if a.coeffs[0] != one:
             y0 = y0 * Polyn([a.coeffs[0].mul_inv()], self.coeff_field)
         return PolynQuotientRing(y0, self.mod_polyn)
