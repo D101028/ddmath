@@ -363,6 +363,7 @@ def _generate_temp_polyn_ring(field: type[T]) -> type:
                 super().__init__(coefficients, field)
         _TempPolynRing_cache.append((field, TempPolynRing))
     return TempPolynRing
+
 class PolynQuotientRing(QuotientRing, Generic[T]):
     def __init__(self, coefficients: List[T] | 'Polyn[T]', mod_polyn: 'Polyn[T]') -> None:
         if isinstance(coefficients, Polyn):
