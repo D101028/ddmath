@@ -8,7 +8,7 @@ from .typesetting import Field, NonNegativeInt
 
 class IntField(QuotientRing, Field):
     def __init__(self, ele: int, mod_ele: int) -> None:
-        if ele != 0 and gcd(ele, mod_ele) != 1:
+        if ele % 5 != 0 and gcd(ele, mod_ele) != 1:
             raise ValueError("the element and the quotient must be relatively prime")
         self.ele: int
         self.mod_ele: int
