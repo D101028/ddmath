@@ -577,7 +577,7 @@ class Matrix(Generic[T]):
     @property
     def H(self) -> Matrix[T]:
         """Hermitian transpose (conjugate transpose). 
-        This method works only if the field has a `conjugate` method.
+        This propety only exists when the field has a `conjugate` method.
         """
         if not hasattr(self.field, 'conjugate'):
             raise NotImplementedError("the field has no `conjugate` method.")
@@ -587,3 +587,7 @@ class Matrix(Generic[T]):
             for j in range(cols):
                 arr[j][i] = self.arr[i][j].conjugate() # type: ignore
         return Matrix(arr, self.field)
+
+    def is_unitary(self) -> bool:
+        """This method works only if the field has a `conjugate` method."""
+        return self.identity() == self.H * self

@@ -5,7 +5,7 @@ from math import gcd
 from typing import Self, Any
 
 from .quotient import QuotientRing
-from .typesetting import Field, NonNegativeInt
+from .typesetting import Field
 
 class IntField(QuotientRing, Field):
     def __init__(self, ele: int, mod_ele: int) -> None:
