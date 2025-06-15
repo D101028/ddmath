@@ -27,7 +27,7 @@ def check_arr_form(arr: Iterable[Iterable[Any]]) -> bool:
             return False
     return True
 
-def matrix_output(arg, replace: dict[Any, str] = {None: " "}) -> str:
+def matrix_output(arg: list[list]) -> str:
     pos = 0
     length = len(arg)
     lengths = [len(a) for a in arg]
@@ -39,8 +39,7 @@ def matrix_output(arg, replace: dict[Any, str] = {None: " "}) -> str:
             if lengths[i] <= pos:
                 continue
             is_end = False
-            ch = arg[i][pos]
-            ch = replace.get(ch, str(ch))
+            ch = str(arg[i][pos])
             if len(ch) > width:
                 new_width = len(ch)
                 for j in range(i):
@@ -572,5 +571,4 @@ class Matrix(Generic[T]):
         result_A = reduce(A)
         if result_A is None:
             return None, None
-        else:
-            return result_A, E0
+        return result_A, E0
