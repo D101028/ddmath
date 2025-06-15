@@ -1,15 +1,60 @@
 from __future__ import annotations
-from fractions import Fraction
-from typing import Self, TypeVar, Generic, Union, List, Any, Type, overload
 
-from math import gcd as _gcd
+import re
 from collections.abc import Iterable
+from fractions import Fraction
+from math import gcd as _gcd
+from typing import Self, TypeVar, Generic, Union, List, Any, Type, overload
 
 from .quotient import QuotientRing
 from .typesetting import Ring, Field
 
 # 定義係數類型的 TypeVar
 T = TypeVar('T', bound=Field)
+
+def _parse_polynomial(poly_str: str, field: type[T]) -> dict[int, T]:
+    field_add_idn = field.add_idn() if hasattr(field, "add_idn") else field(0)
+    field_mul_idn = field.mul_idn() if hasattr(field, "mul_idn") else field(1)
+
+    # 標準化空白與負號
+    poly_str = poly_str.replace(' ', '').replace('-', '+-')
+    if poly_str.startswith('+'):
+        poly_str = poly_str[1:]
+
+    # 拆分項
+    terms = poly_str.split('+')
+
+    # regex 可抓整數、小數、分數
+    pattern = re.compile(r'^(-?(?:\d+(?:\.\d+)?|\d+/\d+)?)(x)?(?:\^(-?\d+))?$')
+
+    poly_dict: dict[int, T] = {}
+
+    for term in terms:
+        if not term:
+            continue
+        match = pattern.fullmatch(term)
+        if not match:
+            raise ValueError(f"無法解析的項: {term}")
+        
+        coef_str, x_str, exp_str = match.groups()
+
+        # 處理係數
+        if coef_str in ('', '+', None):  # 係數為 1
+            coef = field_mul_idn
+        elif coef_str == '-':
+            coef = -field_mul_idn
+        else:
+            coef = field(coef_str)
+
+        # 處理指數
+        if x_str:
+            exp = int(exp_str) if exp_str else 1
+        else:
+            exp = 0
+
+        poly_dict[exp] = coef
+
+    return poly_dict
 
 def _euclidean_division(
     p_coeffs: list[T], mod_coeffs: list[T], field: Type[T]
@@ -110,9 +155,16 @@ class Polyn(Ring, Generic[T]):
             self.field_mul_idn = self.field.mul_idn()
 
         if not isinstance(coefficients, list):
-            # if isinstance(coefficients, str):
-            #     coefficients = _extract_polyn_list_from_str(coefficients)
-            if not isinstance(coefficients, Iterable) or isinstance(coefficients, (str, bytes)):
+            if isinstance(coefficients, str):
+                tmp = _parse_polynomial(coefficients, self.field)
+                coefficients = []
+                for deg in range(max(tmp) + 1):
+                    coeff = tmp.get(deg)
+                    if coeff is None:
+                        coefficients.append(self.field_add_idn)
+                    else:
+                        coefficients.append(coeff)
+            elif not isinstance(coefficients, Iterable):
                 coefficients = [coefficients]
             else:
                 coefficients = list(coefficients)
