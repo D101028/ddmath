@@ -122,9 +122,12 @@ class FractionComplex(Field):
     def mul_inv(self) -> FractionComplex:
         return FractionComplex(1) / self
 
-    def __repr__(self):
+    def __str__(self):
         if self.imag == 0:
             return str(self.real)
         if self.real == 0:
             return f'{self.imag}i'
         return f'({self.real} + {self.imag}i)'
+
+    def conjugate(self) -> FractionComplex:
+        return FractionComplex(self.real, -self.imag)

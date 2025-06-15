@@ -415,6 +415,7 @@ class Matrix(Generic[T]):
 
     @property
     def T(self) -> Matrix[T]:
+        """transpose"""
         rows, cols = self.get_shape()
         arr: list[list[T | None]] = [[None] * rows for _ in range(cols)]
         for i, x in enumerate(self.arr):
@@ -572,3 +573,17 @@ class Matrix(Generic[T]):
         if result_A is None:
             return None, None
         return result_A, E0
+
+    @property
+    def H(self) -> Matrix[T]:
+        """Hermitian transpose (conjugate transpose). 
+        This method works only if the field has a `conjugate` method.
+        """
+        if not hasattr(self.field, 'conjugate'):
+            raise NotImplementedError("the field has no `conjugate` method.")
+        rows, cols = self.get_shape()
+        arr: list[list[T | None]] = [[None] * rows for _ in range(cols)]
+        for i in range(rows):
+            for j in range(cols):
+                arr[j][i] = self.arr[i][j].conjugate() # type: ignore
+        return Matrix(arr, self.field)
