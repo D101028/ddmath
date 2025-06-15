@@ -187,7 +187,7 @@ class Field(Ring):
     """Every field inherits this class"""
     def mul_inv(self) -> Self:
         """You should overload this method."""
-        raise NotImplementedError(f"{type(self).__name__} does not support 'mul_inv'.")
+        raise NotImplementedError
 
     def __truediv__(self, other: Self) -> Self:
         """You should overload this method."""
