@@ -6,7 +6,7 @@ from .typesetting import Field
 # Define the TypeVar for matrix elements
 T = TypeVar('T', bound=Field)
 
-def myLen(obj: Iterable) -> int:
+def _myLen(obj: Iterable) -> int:
     if isinstance(obj, Sized):
         return len(obj)
     else:
@@ -15,19 +15,19 @@ def myLen(obj: Iterable) -> int:
             count += 1
         return count
 
-def check_arr_form(arr: Iterable[Iterable[Any]]) -> bool:
-    length1 = myLen(arr)
+def _check_arr_form(arr: Iterable[Iterable[Any]]) -> bool:
+    length1 = _myLen(arr)
     if length1 == 0:
         return True
     it = iter(arr)
     a0 = next(it)
-    length = myLen(a0)
+    length = _myLen(a0)
     for _ in range(length1-1):
-        if myLen(next(it)) != length:
+        if _myLen(next(it)) != length:
             return False
     return True
 
-def matrix_output(arg: list[list]) -> str:
+def _matrix_output(arg: list[list]) -> str:
     pos = 0
     length = len(arg)
     lengths = [len(a) for a in arg]
@@ -60,7 +60,7 @@ class Matrix(Generic[T]):
     def __init__(self, 
                  arr: Iterable[Iterable[Any]], 
                  field: Type[T]) -> None:
-        if not check_arr_form(arr):
+        if not _check_arr_form(arr):
             raise ValueError("incorrect matrix elements input")
 
         self.field = field
@@ -70,7 +70,7 @@ class Matrix(Generic[T]):
         self.mul_idn: T = self.field(1) if not hasattr(self.field, 'mul_idn') else self.field.mul_idn()
 
     def __str__(self) -> str:
-        return matrix_output(self.arr)
+        return _matrix_output(self.arr)
     def __getitem__(self, index: int) -> list[Any]:
         if not isinstance(index, int):
             raise TypeError(f"incorrect type: {type(index).__name__}")
