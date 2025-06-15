@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import Self, TypeVar, Generic, Union, List, Any, Type, overload
 
+from fractions import Fraction
 from math import gcd
+from typing import Self, Any
 
 from .quotient import QuotientRing
 from .typesetting import Field, NonNegativeInt
@@ -76,3 +77,54 @@ def generate_Zn(n: int):
 
     _Zn_cache[n] = Zn
     return Zn
+
+class FractionComplex(Field):
+    def __init__(self, arg1: Fraction | int | float | complex | 'FractionComplex' | tuple[Any, Any], 
+                 arg2: Fraction | int | float = 0):
+        if isinstance(arg1, (complex, FractionComplex)):
+            self.real = Fraction(arg1.real)
+            self.imag = Fraction(arg1.imag)
+        elif isinstance(arg1, tuple):
+            self.real = Fraction(arg1[0])
+            self.imag = Fraction(arg1[1])
+        else:
+            self.real = Fraction(arg1)
+            self.imag = Fraction(arg2)
+
+    def __add__(self, other: Any) -> FractionComplex:
+        if not isinstance(other, FractionComplex):
+            other = FractionComplex(other)
+        return FractionComplex(self.real + other.real, self.imag + other.imag)
+
+    def __neg__(self) -> FractionComplex:
+        return FractionComplex(-self.real, -self.imag)
+    
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, FractionComplex):
+            other = FractionComplex(other)
+        return self.real == other.real and self.imag == other.imag
+
+    def __mul__(self, other) -> FractionComplex:
+        if not isinstance(other, FractionComplex):
+            other = FractionComplex(other)
+        r = self.real * other.real - self.imag * other.imag
+        i = self.real * other.imag + self.imag * other.real
+        return FractionComplex(r, i)
+
+    def __truediv__(self, other) -> FractionComplex:
+        if not isinstance(other, FractionComplex):
+            other = FractionComplex(other)
+        denom = other.real**2 + other.imag**2
+        r = (self.real * other.real + self.imag * other.imag) / denom
+        i = (self.imag * other.real - self.real * other.imag) / denom
+        return FractionComplex(r, i)
+    
+    def mul_inv(self) -> FractionComplex:
+        return FractionComplex(1) / self
+
+    def __repr__(self):
+        if self.imag == 0:
+            return str(self.real)
+        if self.real == 0:
+            return f'{self.imag}i'
+        return f'({self.real} + {self.imag}i)'

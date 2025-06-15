@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Self, Any, override
+from typing import Self, Any
 
 NonNegativeInt = int  # type alias for non-negative integers
 
@@ -194,6 +194,6 @@ class Field(Ring):
         raise NotImplementedError
     
     def __floordiv__(self, other: Self) -> Self:
-        """You should overload this method."""
+        """You may overload this method."""
         raise NotImplementedError
     

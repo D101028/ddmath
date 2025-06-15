@@ -4,7 +4,7 @@ import re
 from collections.abc import Iterable
 from fractions import Fraction
 from math import gcd as _gcd
-from typing import Self, TypeVar, Generic, Union, List, Any, Type, overload
+from typing import Self, TypeVar, Generic, Union, List, Any, Type
 
 from .quotient import QuotientRing
 from .typesetting import Ring, Field

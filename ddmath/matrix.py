@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import Any, Callable, Type, TypeVar, Generic, Iterable, Sized
 
-from fractions import Fraction
+from .typesetting import Field
 
 # Define the TypeVar for matrix elements
-T = TypeVar('T', bound=Any)
+T = TypeVar('T', bound=Field)
 
 def myLen(obj: Iterable) -> int:
     if isinstance(obj, Sized):
@@ -67,8 +67,8 @@ class Matrix(Generic[T]):
         self.field = field
 
         self.arr: list[list[T]] = [[self.field(j) for j in a] for a in arr]
-        self.add_idn: T = self.field(0)
-        self.mul_idn: T = self.field(1)
+        self.add_idn: T = self.field(0) if not hasattr(self.field, 'add_idn') else self.field.add_idn()
+        self.mul_idn: T = self.field(1) if not hasattr(self.field, 'mul_idn') else self.field.mul_idn()
 
     def __str__(self) -> str:
         return matrix_output(self.arr)
@@ -85,7 +85,7 @@ class Matrix(Generic[T]):
         if self.add_idn != other.add_idn or self.mul_idn != other.mul_idn:
             raise ValueError("different fields")
         rows, cols = self.get_shape()
-        arr = [[None]*cols for _ in range(rows)]
+        arr: list[list[T | None]] = [[None]*cols for _ in range(rows)]
         for r in range(rows):
             for c in range(cols):
                 arr[r][c] = self.arr[r][c] + other.arr[r][c]
@@ -98,7 +98,7 @@ class Matrix(Generic[T]):
         if self.add_idn != other.add_idn or self.mul_idn != other.mul_idn:
             raise ValueError("different fields")
         rows, cols = self.get_shape()
-        arr = [[None]*cols for _ in range(rows)]
+        arr: list[list[T | None]] = [[None]*cols for _ in range(rows)]
         for r in range(rows):
             for c in range(cols):
                 arr[r][c] = self.arr[r][c] - other.arr[r][c]
@@ -120,7 +120,10 @@ class Matrix(Generic[T]):
         arr: list[list[Any]] = [[None] * cols2 for _ in range(rows1)]
         for r in range(rows1):
             for c in range(cols2):
-                arr[r][c] = sum(self.arr[r][i] * other.arr[i][c] for i in range(cols1))
+                a = self.add_idn
+                for i in range(cols1):
+                    a += self.arr[r][i] * other.arr[i][c]
+                arr[r][c] = a
         return Matrix(arr, self.field)
     def __rmul__(self, other: Any) -> Matrix[T]:
         if isinstance(other, Matrix):
@@ -414,7 +417,7 @@ class Matrix(Generic[T]):
     @property
     def T(self) -> Matrix[T]:
         rows, cols = self.get_shape()
-        arr = [[None] * rows for _ in range(cols)]
+        arr: list[list[T | None]] = [[None] * rows for _ in range(cols)]
         for i, x in enumerate(self.arr):
             for j, y in enumerate(x):
                 arr[j][i] = y

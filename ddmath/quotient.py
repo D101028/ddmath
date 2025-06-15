@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import TypeVar, Generic, Union, List, Any, Type, overload, Self
+from typing import TypeVar, Generic, Type, Self
 
-from .typesetting import Ring, Field, NonNegativeInt
+from .typesetting import Ring, Field
 
 T = TypeVar('T', bound=Ring)
 U = TypeVar('U', bound=Field)
