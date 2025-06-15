@@ -127,12 +127,12 @@ class QuotientRing(Ring, Generic[T]):
     def __truediv__(self, other: Self) -> Self:
         return self * other.mul_inv()
 
-class QuotientField(QuotientRing, Field, Generic[U]):
-    def __init__(self, ele: T, mod_ele: T, field: Type[T]) -> None:
-        super().__init__(ele, mod_ele, field)
+# class QuotientField(QuotientRing, Field, Generic[U]):
+#     def __init__(self, ele: T, mod_ele: T, field: Type[T]) -> None:
+#         super().__init__(ele, mod_ele, field)
 
-        self.field = self.ring
-        self.field_add_idn = self.ring_add_idn
-        self.field_mul_idn = self.ring_mul_idn
+#         self.field = self.ring
+#         self.field_add_idn = self.ring_add_idn
+#         self.field_mul_idn = self.ring_mul_idn
 
 
