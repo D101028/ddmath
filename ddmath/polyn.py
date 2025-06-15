@@ -98,7 +98,7 @@ class Polyn(Ring, Generic[T]):
         >>> p.derivative()
         Polyn(int, [2, 6])
     """
-    def __init__(self, coefficients: List[Any] | Any, field: Type[T]) -> None:
+    def __init__(self, coefficients: List[Any] | str | Iterable[Any] | Any, field: Type[T]) -> None:
         self.field: Type[T] = field
         if not hasattr(field, "add_idn"):
             self.field_add_idn = self.field(0)
@@ -110,6 +110,8 @@ class Polyn(Ring, Generic[T]):
             self.field_mul_idn = self.field.mul_idn()
 
         if not isinstance(coefficients, list):
+            # if isinstance(coefficients, str):
+            #     coefficients = _extract_polyn_list_from_str(coefficients)
             if not isinstance(coefficients, Iterable) or isinstance(coefficients, (str, bytes)):
                 coefficients = [coefficients]
             else:
