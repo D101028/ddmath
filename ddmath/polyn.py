@@ -295,6 +295,7 @@ class Polyn(Ring, Generic[T]):
         return result
 
     def euclid_div(self, mod_poly: 'Polyn[T]') -> tuple['Polyn[T]', 'Polyn[T]']:
+        """Compute the Euclidean division and return quotient and remains"""
         if not isinstance(mod_poly, Polyn):
             raise TypeError("modulus must be a Polyn instance")
         if len(mod_poly.coeffs) == 0 or all(c == self.field_add_idn for c in mod_poly.coeffs):
@@ -387,6 +388,7 @@ class PolynQuotientRing(QuotientRing, Generic[T]):
         return type(self)(ele, self.mod_polyn)
 
     def mul_inv(self) -> 'PolynQuotientRing[T]':
+        """compute the multiplicative inverse in the polynomial quotient ring"""
         if not isinstance(self.mod_polyn, Polyn):
             raise TypeError("modulus must be a Polyn instance")
         zero = self.coeff_field_add_idn

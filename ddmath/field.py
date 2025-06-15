@@ -18,6 +18,7 @@ class IntField(QuotientRing, Field):
         return type(self)(ele, self.mod_ele)
 
     def mul_inv(self) -> Self:
+        """compute the multiplicative inverse in the quotient ring"""
         a: int = self.ele
         m: int = self.mod_ele
         if a == 0:
