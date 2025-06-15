@@ -143,7 +143,7 @@ class Polyn(Ring, Generic[T]):
         >>> p.derivative()
         Polyn(int, [2, 6])
     """
-    def __init__(self, coefficients: List[Any] | str | Iterable[Any] | Any, field: Type[T]) -> None:
+    def __init__(self, coefficients: List[Any] | str | Iterable[Any] | 'Polyn' | Any, field: Type[T]) -> None:
         self.field: Type[T] = field
         if not hasattr(field, "add_idn"):
             self.field_add_idn = self.field(0)
@@ -164,6 +164,8 @@ class Polyn(Ring, Generic[T]):
                         coefficients.append(self.field_add_idn)
                     else:
                         coefficients.append(coeff)
+            elif isinstance(coefficients, Polyn):
+                coefficients = coefficients.coeffs
             elif not isinstance(coefficients, Iterable):
                 coefficients = [coefficients]
             else:
@@ -236,6 +238,8 @@ class Polyn(Ring, Generic[T]):
     def __eq__(self, other: Any) -> bool:
         """相等比較"""
         if isinstance(other, Polyn):
+            if self.field != other.field:
+                return False
             return self.coeffs == other.coeffs
         elif isinstance(other, (int, float, Fraction)):
             zero = self.field_add_idn
@@ -460,3 +464,25 @@ class PolynQuotientRing(QuotientRing, Generic[T]):
         if a.coeffs[0] != one:
             y0 = y0 * Polyn([a.coeffs[0].mul_inv()], self.coeff_field)
         return PolynQuotientRing(y0, self.mod_polyn)
+
+_mod_polyn_cache: list[tuple[Polyn, type]] = []
+def generate_polyn_quotient_ring(mod_polyn: Polyn[T]) -> type:
+    for tmp_mod_polyn, tmp_PQR in _mod_polyn_cache:
+        if mod_polyn == tmp_mod_polyn:
+            TempPQR = tmp_PQR
+            break
+    else:
+        class TempPQR(PolynQuotientRing):
+            def __init__(self, coefficients: List[Any] | Polyn | 'TempPQR') -> None:
+                if isinstance(coefficients, TempPQR):
+                    coefficients = coefficients.polyn.coeffs
+                super().__init__(coefficients, mod_polyn)
+            
+            def _construct(self, ele: Any) -> Self:
+                return type(self)(ele)
+            
+            def __str__(self) -> str:
+                return f"{self.ele}"
+
+        _mod_polyn_cache.append((mod_polyn, TempPQR))
+    return TempPQR

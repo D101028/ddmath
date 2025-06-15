@@ -65,7 +65,10 @@ class Matrix(Generic[T]):
 
         self.field = field
 
-        self.arr: list[list[T]] = [[self.field(j) for j in a] for a in arr]
+        self.arr: list[list[T]] = [[self.field(j) \
+                                        if not isinstance(j, self.field) \
+                                        else j \
+                                     for j in a] for a in arr]
         self.add_idn: T = self.field(0) if not hasattr(self.field, 'add_idn') else self.field.add_idn()
         self.mul_idn: T = self.field(1) if not hasattr(self.field, 'mul_idn') else self.field.mul_idn()
 
