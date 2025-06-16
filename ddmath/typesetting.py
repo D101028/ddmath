@@ -119,6 +119,16 @@ class Ring(Group):
         else:
             raise TypeError(f"Unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
     
+    def __lmul__(self, other: Self | int) -> Self:
+        """You should overload some parts of this method."""
+        if isinstance(other, int):
+            return super().__lmul__(other)
+        elif isinstance(other, type(self)):
+            # You should overload this method in subclasses to define multiplication between two elements
+            raise NotImplementedError(f"{type(self).__name__} does not implement multiplication with its own type.")
+        else:
+            raise TypeError(f"Unsupported operand type(s) for *: '{type(self).__name__}' and '{type(other).__name__}'")
+    
     def __mod__(self, other: Self) -> Self:
         """You may overload this method."""
         raise NotImplementedError(f"{type(self).__name__} does not support '%' operation.")
